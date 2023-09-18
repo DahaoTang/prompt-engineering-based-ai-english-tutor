@@ -6,7 +6,7 @@
 
 1. Understand the basics for AI prompt engineering with a focus on ChatGPT
 2. Construct the API for a toggled AI prompt answering machine, with potential focus on the scenario of education: English / Mathematics
-3. Construct a web prototype for the API
+3. Construct a web demo for the API
 
 ## Plan
 
