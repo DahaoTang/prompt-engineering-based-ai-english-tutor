@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 openai = "*"
 ipykernel = "*"
+python-dotenv = "*"
 notebook = "*"
 jupyter-bokeh = "*"
 redlines = "*"

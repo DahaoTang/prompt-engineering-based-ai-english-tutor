@@ -1,5 +1,6 @@
 openai
 ipykernel
+python-dotenv
 notebook
 jupyter_bokeh
 redlines
