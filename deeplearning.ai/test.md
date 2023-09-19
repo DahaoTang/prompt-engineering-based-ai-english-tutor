@@ -1,6 +1,5 @@
-# Transforming
-
-In this notebook, we will explore how to use Large Language Models for text transformation tasks such as language translation, spelling and grammar checking, tone adjustment, and format conversion.
+# Expanding
+In this lesson, you will generate customer service emails that are tailored to each customer's review.
 
 ## Setup
 
@@ -12,164 +11,92 @@ _ = load_dotenv(find_dotenv()) # read local .env file
 
 openai.api_key  = os.getenv('OPENAI_API_KEY')
 
-def get_completion(prompt, model="gpt-3.5-turbo", temperature=0): 
+def get_completion(prompt, model="gpt-3.5-turbo",temperature=0): # Andrew mentioned that the prompt/ completion paradigm is preferable for this class
     messages = [{"role": "user", "content": prompt}]
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
-        temperature=temperature, 
+        temperature=temperature, # this is the degree of randomness of the model's output
     )
     return response.choices[0].message["content"]
 
-## Translation
+## Customize the automated reply to a customer email
 
-ChatGPT is trained with sources in many languages. This gives the model the ability to do translation. Here are some examples of how to use this capability.
+# given the sentiment from the lesson on "inferring",
+# and the original customer message, customize the email
+sentiment = "negative"
+
+# review for a blender
+review = f"""
+So, they still had the 17 piece system on seasonal \
+sale for around $49 in the month of November, about \
+half off, but for some reason (call it price gouging) \
+around the second week of December the prices all went \
+up to about anywhere from between $70-$89 for the same \
+system. And the 11 piece system went up around $10 or \
+so in price also from the earlier sale price of $29. \
+So it looks okay, but if you look at the base, the part \
+where the blade locks into place doesn’t look as good \
+as in previous editions from a few years ago, but I \
+plan to be very gentle with it (example, I crush \
+very hard items like beans, ice, rice, etc. in the \ 
+blender first then pulverize them in the serving size \
+I want in the blender then switch to the whipping \
+blade for a finer flour, and use the cross cutting blade \
+first when making smoothies, then use the flat blade \
+if I need them finer/less pulpy). Special tip when making \
+smoothies, finely cut and freeze the fruits and \
+vegetables (if using spinach-lightly stew soften the \ 
+spinach then freeze until ready for use-and if making \
+sorbet, use a small to medium sized food processor) \ 
+that you plan to use that way you can avoid adding so \
+much ice if at all-when making your smoothie. \
+After about a year, the motor was making a funny noise. \
+I called customer service but the warranty expired \
+already, so I had to buy another one. FYI: The overall \
+quality has gone done in these types of products, so \
+they are kind of counting on brand recognition and \
+consumer loyalty to maintain sales. Got it in about \
+two days.
+"""
 
 prompt = f"""
-Translate the following English text to Spanish: \ 
-```Hi, I would like to order a blender```
+You are a customer service AI assistant.
+Your task is to send an email reply to a valued customer.
+Given the customer email delimited by ```, \
+Generate a reply to thank the customer for their review.
+If the sentiment is positive or neutral, thank them for \
+their review.
+If the sentiment is negative, apologize and suggest that \
+they can reach out to customer service. 
+Make sure to use specific details from the review.
+Write in a concise and professional tone.
+Sign the email as `AI customer agent`.
+Customer review: ```{review}```
+Review sentiment: {sentiment}
 """
 response = get_completion(prompt)
 print(response)
 
-prompt = f"""
-Tell me which language this is: 
-```Combien coûte le lampadaire?```
-"""
-response = get_completion(prompt)
-print(response)
+## Remind the model to use details from the customer's email
 
 prompt = f"""
-Translate the following  text to French and Spanish
-and English pirate: \
-```I want to order a basketball```
+You are a customer service AI assistant.
+Your task is to send an email reply to a valued customer.
+Given the customer email delimited by ```, \
+Generate a reply to thank the customer for their review.
+If the sentiment is positive or neutral, thank them for \
+their review.
+If the sentiment is negative, apologize and suggest that \
+they can reach out to customer service. 
+Make sure to use specific details from the review.
+Write in a concise and professional tone.
+Sign the email as `AI customer agent`.
+Customer review: ```{review}```
+Review sentiment: {sentiment}
 """
-response = get_completion(prompt)
+response = get_completion(prompt, temperature=0.7)
 print(response)
 
-prompt = f"""
-Translate the following text to Spanish in both the \
-formal and informal forms: 
-'Would you like to order a pillow?'
-"""
-response = get_completion(prompt)
-print(response)
+## Try experimenting on your own!
 
-### Universal Translator
-Imagine you are in charge of IT at a large multinational e-commerce company. Users are messaging you with IT issues in all their native languages. Your staff is from all over the world and speaks only their native languages. You need a universal translator!
-
-user_messages = [
-  "La performance du système est plus lente que d'habitude.",  # System performance is slower than normal         
-  "Mi monitor tiene píxeles que no se iluminan.",              # My monitor has pixels that are not lighting
-  "Il mio mouse non funziona",                                 # My mouse is not working
-  "Mój klawisz Ctrl jest zepsuty",                             # My keyboard has a broken control key
-  "我的屏幕在闪烁"                                               # My screen is flashing
-] 
-
-for issue in user_messages:
-    prompt = f"Tell me what language this is: ```{issue}```"
-    lang = get_completion(prompt)
-    print(f"Original message ({lang}): {issue}")
-
-    prompt = f"""
-    Translate the following  text to English \
-    and Korean: ```{issue}```
-    """
-    response = get_completion(prompt)
-    print(response, "\n")
-
-## Try it yourself!
-Try some translations on your own!
-
-
-
-## Tone Transformation
-Writing can vary based on the intended audience. ChatGPT can produce different tones.
-
-
-prompt = f"""
-Translate the following from slang to a business letter: 
-'Dude, This is Joe, check out this spec on this standing lamp.'
-"""
-response = get_completion(prompt)
-print(response)
-
-## Format Conversion
-ChatGPT can translate between formats. The prompt should describe the input and output formats.
-
-data_json = { "resturant employees" :[ 
-    {"name":"Shyam", "email":"shyamjaiswal@gmail.com"},
-    {"name":"Bob", "email":"bob32@gmail.com"},
-    {"name":"Jai", "email":"jai87@gmail.com"}
-]}
-
-prompt = f"""
-Translate the following python dictionary from JSON to an HTML \
-table with column headers and title: {data_json}
-"""
-response = get_completion(prompt)
-print(response)
-
-from IPython.display import display, Markdown, Latex, HTML, JSON
-display(HTML(response))
-
-## Spellcheck/Grammar check.
-
-Here are some examples of common grammar and spelling problems and the LLM's response. 
-
-To signal to the LLM that you want it to proofread your text, you instruct the model to 'proofread' or 'proofread and correct'.
-
-text = [ 
-  "The girl with the black and white puppies have a ball.",  # The girl has a ball.
-  "Yolanda has her notebook.", # ok
-  "Its going to be a long day. Does the car need it’s oil changed?",  # Homonyms
-  "Their goes my freedom. There going to bring they’re suitcases.",  # Homonyms
-  "Your going to need you’re notebook.",  # Homonyms
-  "That medicine effects my ability to sleep. Have you heard of the butterfly affect?", # Homonyms
-  "This phrase is to cherck chatGPT for speling abilitty"  # spelling
-]
-for t in text:
-    prompt = f"""Proofread and correct the following text
-    and rewrite the corrected version. If you don't find
-    and errors, just say "No errors found". Don't use 
-    any punctuation around the text:
-    ```{t}```"""
-    response = get_completion(prompt)
-    print(response)
-
-text = f"""
-Got this for my daughter for her birthday cuz she keeps taking \
-mine from my room.  Yes, adults also like pandas too.  She takes \
-it everywhere with her, and it's super soft and cute.  One of the \
-ears is a bit lower than the other, and I don't think that was \
-designed to be asymmetrical. It's a bit small for what I paid for it \
-though. I think there might be other options that are bigger for \
-the same price.  It arrived a day earlier than expected, so I got \
-to play with it myself before I gave it to my daughter.
-"""
-prompt = f"proofread and correct this review: ```{text}```"
-response = get_completion(prompt)
-print(response)
-
-from redlines import Redlines
-
-diff = Redlines(text,response)
-display(Markdown(diff.output_markdown))
-
-prompt = f"""
-proofread and correct this review. Make it more compelling. 
-Ensure it follows APA style guide and targets an advanced reader. 
-Output in markdown format.
-Text: ```{text}```
-"""
-response = get_completion(prompt)
-display(Markdown(response))
-
-## Try it yourself!
-Try changing the instructions to form your own review.
-
-
-
-Thanks to the following sites:
-
-https://writingprompts.com/bad-grammar-examples/
