@@ -1,5 +1,6 @@
-# Inferring
-In this lesson, you will infer sentiment and topics from product reviews and news articles.
+# Transforming
+
+In this notebook, we will explore how to use Large Language Models for text transformation tasks such as language translation, spelling and grammar checking, tone adjustment, and format conversion.
 
 ## Setup
 
@@ -11,189 +12,164 @@ _ = load_dotenv(find_dotenv()) # read local .env file
 
 openai.api_key  = os.getenv('OPENAI_API_KEY')
 
-def get_completion(prompt, model="gpt-3.5-turbo"):
+def get_completion(prompt, model="gpt-3.5-turbo", temperature=0): 
     messages = [{"role": "user", "content": prompt}]
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
-        temperature=0, # this is the degree of randomness of the model's output
+        temperature=temperature, 
     )
     return response.choices[0].message["content"]
 
-## Product review text
+## Translation
 
-lamp_review = """
-Needed a nice lamp for my bedroom, and this one had \
-additional storage and not too high of a price point. \
-Got it fast.  The string to our lamp broke during the \
-transit and the company happily sent over a new one. \
-Came within a few days as well. It was easy to put \
-together.  I had a missing part, so I contacted their \
-support and they very quickly got me the missing piece! \
-Lumina seems to me to be a great company that cares \
-about their customers and products!!
-"""
-
-## Sentiment (positive/negative)
+ChatGPT is trained with sources in many languages. This gives the model the ability to do translation. Here are some examples of how to use this capability.
 
 prompt = f"""
-What is the sentiment of the following product review, 
-which is delimited with triple backticks?
-
-Review text: '''{lamp_review}'''
+Translate the following English text to Spanish: \ 
+```Hi, I would like to order a blender```
 """
 response = get_completion(prompt)
 print(response)
 
 prompt = f"""
-What is the sentiment of the following product review, 
-which is delimited with triple backticks?
-
-Give your answer as a single word, either "positive" \
-or "negative".
-
-Review text: '''{lamp_review}'''
+Tell me which language this is: 
+```Combien coûte le lampadaire?```
 """
 response = get_completion(prompt)
 print(response)
-
-## Identify types of emotions
 
 prompt = f"""
-Identify a list of emotions that the writer of the \
-following review is expressing. Include no more than \
-five items in the list. Format your answer as a list of \
-lower-case words separated by commas.
-
-Review text: '''{lamp_review}'''
+Translate the following  text to French and Spanish
+and English pirate: \
+```I want to order a basketball```
 """
 response = get_completion(prompt)
 print(response)
-
-## Identify anger
 
 prompt = f"""
-Is the writer of the following review expressing anger?\
-The review is delimited with triple backticks. \
-Give your answer as either yes or no.
-
-Review text: '''{lamp_review}'''
+Translate the following text to Spanish in both the \
+formal and informal forms: 
+'Would you like to order a pillow?'
 """
 response = get_completion(prompt)
 print(response)
 
-## Extract product and company name from customer reviews
+### Universal Translator
+Imagine you are in charge of IT at a large multinational e-commerce company. Users are messaging you with IT issues in all their native languages. Your staff is from all over the world and speaks only their native languages. You need a universal translator!
+
+user_messages = [
+  "La performance du système est plus lente que d'habitude.",  # System performance is slower than normal         
+  "Mi monitor tiene píxeles que no se iluminan.",              # My monitor has pixels that are not lighting
+  "Il mio mouse non funziona",                                 # My mouse is not working
+  "Mój klawisz Ctrl jest zepsuty",                             # My keyboard has a broken control key
+  "我的屏幕在闪烁"                                               # My screen is flashing
+] 
+
+for issue in user_messages:
+    prompt = f"Tell me what language this is: ```{issue}```"
+    lang = get_completion(prompt)
+    print(f"Original message ({lang}): {issue}")
+
+    prompt = f"""
+    Translate the following  text to English \
+    and Korean: ```{issue}```
+    """
+    response = get_completion(prompt)
+    print(response, "\n")
+
+## Try it yourself!
+Try some translations on your own!
+
+
+
+## Tone Transformation
+Writing can vary based on the intended audience. ChatGPT can produce different tones.
+
 
 prompt = f"""
-Identify the following items from the review text: 
-- Item purchased by reviewer
-- Company that made the item
-
-The review is delimited with triple backticks. \
-Format your response as a JSON object with \
-"Item" and "Brand" as the keys. 
-If the information isn't present, use "unknown" \
-as the value.
-Make your response as short as possible.
-  
-Review text: '''{lamp_review}'''
+Translate the following from slang to a business letter: 
+'Dude, This is Joe, check out this spec on this standing lamp.'
 """
 response = get_completion(prompt)
 print(response)
 
-## Doing multiple tasks at once
+## Format Conversion
+ChatGPT can translate between formats. The prompt should describe the input and output formats.
+
+data_json = { "resturant employees" :[ 
+    {"name":"Shyam", "email":"shyamjaiswal@gmail.com"},
+    {"name":"Bob", "email":"bob32@gmail.com"},
+    {"name":"Jai", "email":"jai87@gmail.com"}
+]}
 
 prompt = f"""
-Identify the following items from the review text: 
-- Sentiment (positive or negative)
-- Is the reviewer expressing anger? (true or false)
-- Item purchased by reviewer
-- Company that made the item
-
-The review is delimited with triple backticks. \
-Format your response as a JSON object with \
-"Sentiment", "Anger", "Item" and "Brand" as the keys.
-If the information isn't present, use "unknown" \
-as the value.
-Make your response as short as possible.
-Format the Anger value as a boolean.
-
-Review text: '''{lamp_review}'''
+Translate the following python dictionary from JSON to an HTML \
+table with column headers and title: {data_json}
 """
 response = get_completion(prompt)
 print(response)
 
-## Inferring topics
+from IPython.display import display, Markdown, Latex, HTML, JSON
+display(HTML(response))
 
-story = """
-In a recent survey conducted by the government, 
-public sector employees were asked to rate their level 
-of satisfaction with the department they work at. 
-The results revealed that NASA was the most popular 
-department with a satisfaction rating of 95%.
+## Spellcheck/Grammar check.
 
-One NASA employee, John Smith, commented on the findings, 
-stating, "I'm not surprised that NASA came out on top. 
-It's a great place to work with amazing people and 
-incredible opportunities. I'm proud to be a part of 
-such an innovative organization."
+Here are some examples of common grammar and spelling problems and the LLM's response. 
 
-The results were also welcomed by NASA's management team, 
-with Director Tom Johnson stating, "We are thrilled to 
-hear that our employees are satisfied with their work at NASA. 
-We have a talented and dedicated team who work tirelessly 
-to achieve our goals, and it's fantastic to see that their 
-hard work is paying off."
+To signal to the LLM that you want it to proofread your text, you instruct the model to 'proofread' or 'proofread and correct'.
 
-The survey also revealed that the 
-Social Security Administration had the lowest satisfaction 
-rating, with only 45% of employees indicating they were 
-satisfied with their job. The government has pledged to 
-address the concerns raised by employees in the survey and 
-work towards improving job satisfaction across all departments.
-"""
-
-## Infer 5 topics
-
-prompt = f"""
-Determine five topics that are being discussed in the \
-following text, which is delimited by triple backticks.
-
-Make each item one or two words long. 
-
-Format your response as a list of items separated by commas.
-
-Text sample: '''{story}'''
-"""
-response = get_completion(prompt)
-print(response)
-
-response.split(sep=',')
-
-topic_list = [
-    "nasa", "local government", "engineering", 
-    "employee satisfaction", "federal government"
+text = [ 
+  "The girl with the black and white puppies have a ball.",  # The girl has a ball.
+  "Yolanda has her notebook.", # ok
+  "Its going to be a long day. Does the car need it’s oil changed?",  # Homonyms
+  "Their goes my freedom. There going to bring they’re suitcases.",  # Homonyms
+  "Your going to need you’re notebook.",  # Homonyms
+  "That medicine effects my ability to sleep. Have you heard of the butterfly affect?", # Homonyms
+  "This phrase is to cherck chatGPT for speling abilitty"  # spelling
 ]
+for t in text:
+    prompt = f"""Proofread and correct the following text
+    and rewrite the corrected version. If you don't find
+    and errors, just say "No errors found". Don't use 
+    any punctuation around the text:
+    ```{t}```"""
+    response = get_completion(prompt)
+    print(response)
 
-## Make a news alert for certain topics
-
-prompt = f"""
-Determine whether each item in the following list of \
-topics is a topic in the text below, which
-is delimited with triple backticks.
-
-Give your answer as list with 0 or 1 for each topic.\
-
-List of topics: {", ".join(topic_list)}
-
-Text sample: '''{story}'''
+text = f"""
+Got this for my daughter for her birthday cuz she keeps taking \
+mine from my room.  Yes, adults also like pandas too.  She takes \
+it everywhere with her, and it's super soft and cute.  One of the \
+ears is a bit lower than the other, and I don't think that was \
+designed to be asymmetrical. It's a bit small for what I paid for it \
+though. I think there might be other options that are bigger for \
+the same price.  It arrived a day earlier than expected, so I got \
+to play with it myself before I gave it to my daughter.
 """
+prompt = f"proofread and correct this review: ```{text}```"
 response = get_completion(prompt)
 print(response)
 
-topic_dict = {i.split(': ')[0]: int(i.split(': ')[1]) for i in response.split(sep='\n')}
-if topic_dict['nasa'] == 1:
-    print("ALERT: New NASA story!")
+from redlines import Redlines
 
-## Try experimenting on your own!
+diff = Redlines(text,response)
+display(Markdown(diff.output_markdown))
 
+prompt = f"""
+proofread and correct this review. Make it more compelling. 
+Ensure it follows APA style guide and targets an advanced reader. 
+Output in markdown format.
+Text: ```{text}```
+"""
+response = get_completion(prompt)
+display(Markdown(response))
+
+## Try it yourself!
+Try changing the instructions to form your own review.
+
+
+
+Thanks to the following sites:
+
+https://writingprompts.com/bad-grammar-examples/
