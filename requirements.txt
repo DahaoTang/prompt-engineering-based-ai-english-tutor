@@ -1,4 +1,6 @@
 openai
 ipykernel
 notebook
+jupyter_bokeh
 redlines
+panel
