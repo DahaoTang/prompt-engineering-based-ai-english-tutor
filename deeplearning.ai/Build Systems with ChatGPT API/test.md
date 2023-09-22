@@ -1,6 +1,6 @@
-# Build an End-to-End System
+# L9: Evaluation Part II
 
-This puts together the chain of prompts that you saw throughout the course.
+Evaluate LLM responses where there isn't a single "right answer."
 
 ## Setup
 #### Load the API key and relevant Python libaries.
@@ -11,10 +11,6 @@ import openai
 import sys
 sys.path.append('../..')
 import utils
-
-import panel as pn  # GUI
-pn.extension()
-
 from dotenv import load_dotenv, find_dotenv
 _ = load_dotenv(find_dotenv()) # read local .env file
 
@@ -29,121 +25,186 @@ def get_completion_from_messages(messages, model="gpt-3.5-turbo", temperature=0,
     )
     return response.choices[0].message["content"]
 
-## System of chained prompts for processing the user query
+### Run through the end-to-end system to answer the user query
 
-def process_user_message(user_input, all_messages, debug=True):
-    delimiter = "```"
+These helper functions are running the chain of promopts that you saw in the earlier videos.
+
+customer_msg = f"""
+tell me about the smartx pro phone and the fotosnap camera, the dslr one.
+Also, what TVs or TV related products do you have?"""
+
+products_by_category = utils.get_products_from_query(customer_msg)
+category_and_product_list = utils.read_string_to_list(products_by_category)
+product_info = utils.get_mentioned_product_info(category_and_product_list)
+assistant_answer = utils.answer_user_msg(user_msg=customer_msg,
+                                                   product_info=product_info)
+
+print(assistant_answer) 
+
+### Evaluate the LLM's answer to the user with a rubric, based on the extracted product information
+
+cust_prod_info = {
+    'customer_msg': customer_msg,
+    'context': product_info
+}
+
+def eval_with_rubric(test_set, assistant_answer):
+
+    cust_msg = test_set['customer_msg']
+    context = test_set['context']
+    completion = assistant_answer
     
-    # Step 1: Check input to see if it flags the Moderation API or is a prompt injection
-    response = openai.Moderation.create(input=user_input)
-    moderation_output = response["results"][0]
-
-    if moderation_output["flagged"]:
-        print("Step 1: Input flagged by Moderation API.")
-        return "Sorry, we cannot process this request."
-
-    if debug: print("Step 1: Input passed moderation check.")
-    
-    category_and_product_response = utils.find_category_and_product_only(user_input, utils.get_products_and_category())
-    #print(print(category_and_product_response)
-    # Step 2: Extract the list of products
-    category_and_product_list = utils.read_string_to_list(category_and_product_response)
-    #print(category_and_product_list)
-
-    if debug: print("Step 2: Extracted list of products.")
-
-    # Step 3: If products are found, look them up
-    product_information = utils.generate_output_string(category_and_product_list)
-    if debug: print("Step 3: Looked up product information.")
-
-    # Step 4: Answer the user question
-    system_message = f"""
-    You are a customer service assistant for a large electronic store. \
-    Respond in a friendly and helpful tone, with concise answers. \
-    Make sure to ask the user relevant follow-up questions.
+    system_message = """\
+    You are an assistant that evaluates how well the customer service agent \
+    answers a user question by looking at the context that the customer service \
+    agent is using to generate its response. 
     """
-    messages = [
-        {'role': 'system', 'content': system_message},
-        {'role': 'user', 'content': f"{delimiter}{user_input}{delimiter}"},
-        {'role': 'assistant', 'content': f"Relevant product information:\n{product_information}"}
-    ]
 
-    final_response = get_completion_from_messages(all_messages + messages)
-    if debug:print("Step 4: Generated response to user question.")
-    all_messages = all_messages + messages[1:]
+    user_message = f"""\
+You are evaluating a submitted answer to a question based on the context \
+that the agent uses to answer the question.
+Here is the data:
+    [BEGIN DATA]
+    ************
+    [Question]: {cust_msg}
+    ************
+    [Context]: {context}
+    ************
+    [Submission]: {completion}
+    ************
+    [END DATA]
 
-    # Step 5: Put the answer through the Moderation API
-    response = openai.Moderation.create(input=final_response)
-    moderation_output = response["results"][0]
+Compare the factual content of the submitted answer with the context. \
+Ignore any differences in style, grammar, or punctuation.
+Answer the following questions:
+    - Is the Assistant response based only on the context provided? (Y or N)
+    - Does the answer include information that is not provided in the context? (Y or N)
+    - Is there any disagreement between the response and the context? (Y or N)
+    - Count how many questions the user asked. (output a number)
+    - For each question that the user asked, is there a corresponding answer to it?
+      Question 1: (Y or N)
+      Question 2: (Y or N)
+      ...
+      Question N: (Y or N)
+    - Of the number of questions asked, how many of these questions were addressed by the answer? (output a number)
+"""
 
-    if moderation_output["flagged"]:
-        if debug: print("Step 5: Response flagged by Moderation API.")
-        return "Sorry, we cannot provide this information."
-
-    if debug: print("Step 5: Response passed moderation check.")
-
-    # Step 6: Ask the model if the response answers the initial user query well
-    user_message = f"""
-    Customer message: {delimiter}{user_input}{delimiter}
-    Agent response: {delimiter}{final_response}{delimiter}
-
-    Does the response sufficiently answer the question?
-    """
     messages = [
         {'role': 'system', 'content': system_message},
         {'role': 'user', 'content': user_message}
     ]
-    evaluation_response = get_completion_from_messages(messages)
-    if debug: print("Step 6: Model evaluated the response.")
 
-    # Step 7: If yes, use this answer; if not, say that you will connect the user to a human
-    if "Y" in evaluation_response:  # Using "in" instead of "==" to be safer for model output variation (e.g., "Y." or "Yes")
-        if debug: print("Step 7: Model approved the response.")
-        return final_response, all_messages
-    else:
-        if debug: print("Step 7: Model disapproved the response.")
-        neg_str = "I'm unable to provide the information you're looking for. I'll connect you with a human representative for further assistance."
-        return neg_str, all_messages
+    response = get_completion_from_messages(messages)
+    return response
 
-user_input = "tell me about the smartx pro phone and the fotosnap camera, the dslr one. Also what tell me about your tvs"
-response,_ = process_user_message(user_input,[])
-print(response)
+evaluation_output = eval_with_rubric(cust_prod_info, assistant_answer)
+print(evaluation_output)
 
-### Function that collects user and assistant messages over time
+### Evaluate the LLM's answer to the user based on an "ideal" / "expert" (human generated) answer.
 
-def collect_messages(debug=False):
-    user_input = inp.value_input
-    if debug: print(f"User Input = {user_input}")
-    if user_input == "":
-        return
-    inp.value = ''
-    global context
-    #response, context = process_user_message(user_input, context, utils.get_products_and_category(),debug=True)
-    response, context = process_user_message(user_input, context, debug=False)
-    context.append({'role':'assistant', 'content':f"{response}"})
-    panels.append(
-        pn.Row('User:', pn.pane.Markdown(user_input, width=600)))
-    panels.append(
-        pn.Row('Assistant:', pn.pane.Markdown(response, width=600, style={'background-color': '#F6F6F6'})))
- 
-    return pn.Column(*panels)
+test_set_ideal = {
+    'customer_msg': """\
+tell me about the smartx pro phone and the fotosnap camera, the dslr one.
+Also, what TVs or TV related products do you have?""",
+    'ideal_answer':"""\
+Of course!  The SmartX ProPhone is a powerful \
+smartphone with advanced camera features. \
+For instance, it has a 12MP dual camera. \
+Other features include 5G wireless and 128GB storage. \
+It also has a 6.1-inch display.  The price is $899.99.
 
-### Chat with the chatbot!
-Note that the system message includes detailed instructions about what the OrderBot should do.
+The FotoSnap DSLR Camera is great for \
+capturing stunning photos and videos. \
+Some features include 1080p video, \
+3-inch LCD, a 24.2MP sensor, \
+and interchangeable lenses. \
+The price is 599.99.
 
-panels = [] # collect display 
+For TVs and TV related products, we offer 3 TVs \
 
-context = [ {'role':'system', 'content':"You are Service Assistant"} ]  
 
-inp = pn.widgets.TextInput( placeholder='Enter text here…')
-button_conversation = pn.widgets.Button(name="Service Assistant")
+All TVs offer HDR and Smart TV.
 
-interactive_conversation = pn.bind(collect_messages, button_conversation)
+The CineView 4K TV has vibrant colors and smart features. \
+Some of these features include a 55-inch display, \
+'4K resolution. It's priced at 599.
 
-dashboard = pn.Column(
-    inp,
-    pn.Row(button_conversation),
-    pn.panel(interactive_conversation, loading_indicator=True, height=300),
-)
+The CineView 8K TV is a stunning 8K TV. \
+Some features include a 65-inch display and \
+8K resolution.  It's priced at 2999.99
 
-dashboard
+The CineView OLED TV lets you experience vibrant colors. \
+Some features include a 55-inch display and 4K resolution. \
+It's priced at 1499.99.
+
+We also offer 2 home theater products, both which include bluetooth.\
+The SoundMax Home Theater is a powerful home theater system for \
+an immmersive audio experience.
+Its features include 5.1 channel, 1000W output, and wireless subwoofer.
+It's priced at 399.99.
+
+The SoundMax Soundbar is a sleek and powerful soundbar.
+It's features include 2.1 channel, 300W output, and wireless subwoofer.
+It's priced at 199.99
+
+Are there any questions additional you may have about these products \
+that you mentioned here?
+Or may do you have other questions I can help you with?
+    """
+}
+
+### Check if the LLM's response agrees with or disagrees with the expert answer
+
+This evaluation prompt is from the [OpenAI evals](https://github.com/openai/evals/blob/main/evals/registry/modelgraded/fact.yaml) project.
+
+[BLEU score](https://en.wikipedia.org/wiki/BLEU): another way to evaluate whether two pieces of text are similar or not.
+
+def eval_vs_ideal(test_set, assistant_answer):
+
+    cust_msg = test_set['customer_msg']
+    ideal = test_set['ideal_answer']
+    completion = assistant_answer
+    
+    system_message = """\
+    You are an assistant that evaluates how well the customer service agent \
+    answers a user question by comparing the response to the ideal (expert) response
+    Output a single letter and nothing else. 
+    """
+
+    user_message = f"""\
+You are comparing a submitted answer to an expert answer on a given question. Here is the data:
+    [BEGIN DATA]
+    ************
+    [Question]: {cust_msg}
+    ************
+    [Expert]: {ideal}
+    ************
+    [Submission]: {completion}
+    ************
+    [END DATA]
+
+Compare the factual content of the submitted answer with the expert answer. Ignore any differences in style, grammar, or punctuation.
+    The submitted answer may either be a subset or superset of the expert answer, or it may conflict with it. Determine which case applies. Answer the question by selecting one of the following options:
+    (A) The submitted answer is a subset of the expert answer and is fully consistent with it.
+    (B) The submitted answer is a superset of the expert answer and is fully consistent with it.
+    (C) The submitted answer contains all the same details as the expert answer.
+    (D) There is a disagreement between the submitted answer and the expert answer.
+    (E) The answers differ, but these differences don't matter from the perspective of factuality.
+  choice_strings: ABCDE
+"""
+
+    messages = [
+        {'role': 'system', 'content': system_message},
+        {'role': 'user', 'content': user_message}
+    ]
+
+    response = get_completion_from_messages(messages)
+    return response
+
+print(assistant_answer)
+
+eval_vs_ideal(test_set_ideal, assistant_answer)
+
+assistant_answer_2 = "life is like a box of chocolates"
+
+eval_vs_ideal(test_set_ideal, assistant_answer_2)
