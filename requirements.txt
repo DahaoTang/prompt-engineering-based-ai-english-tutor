@@ -1,8 +1,9 @@
-openai
 ipykernel
-python-dotenv
-notebook
 jupyter_bokeh
-redlines
+notebook
+openai
 panel
+python-dotenv
+redlines
 tiktoken
+utils
