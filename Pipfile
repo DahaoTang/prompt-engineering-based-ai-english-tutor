@@ -5,14 +5,9 @@ name = "pypi"
 
 [packages]
 ipykernel = "*"
-jupyter-bokeh = "*"
 notebook = "*"
 openai = "*"
-panel = "*"
 python-dotenv = "*"
-redlines = "*"
-tiktoken = "*"
-utils = "*"
 
 [dev-packages]
 
