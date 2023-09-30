@@ -7,7 +7,6 @@ name = "pypi"
 ipykernel = "*"
 notebook = "*"
 openai = "*"
-python-dotenv = "*"
 
 [dev-packages]
 
