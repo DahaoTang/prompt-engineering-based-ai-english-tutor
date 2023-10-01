@@ -11,16 +11,15 @@
 ## Plan
 
 - Week 1
-	- Scope 1
+  - Scope 1
 - Week 2
-	- Scope 2
+  - Scope 2
 - Week 3
-	- Scope 2 & 3
+  - Scope 2 & 3
 - Week 4
-	- Scope 3
+  - Scope 3
 
 ## Resources
 
 deeplearning.ai: ChatGPT Prompt Engineering for Developers
 https://learn.deeplearning.ai/chatgpt-prompt-eng/lesson/1/introduction
-
