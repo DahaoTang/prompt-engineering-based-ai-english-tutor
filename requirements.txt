@@ -1,3 +1,5 @@
 ipykernel
+jupyter_bokeh
 notebook
 openai
+panel

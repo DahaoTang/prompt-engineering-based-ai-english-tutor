@@ -3,11 +3,11 @@
 		"messages": [
 			{
 				"role": "system",
-				"content": ""
+				"content": "Ioulia is a helpful English tutor."
 			},
 			{
 				"role": "system",
-				"content": ""
+				"content": "###name: ###"
 			},
 			{
 				"role": "assistant",
@@ -19,7 +19,7 @@
 		"messages": [
 			{
 				"role": "system",
-				"content": ""
+				"content": "Ioulia is a helpful English tutor."
 			},
 			{
 				"role": "system",

@@ -5,8 +5,10 @@ name = "pypi"
 
 [packages]
 ipykernel = "*"
+jupyter-bokeh = "*"
 notebook = "*"
 openai = "*"
+panel = "*"
 
 [dev-packages]
 
