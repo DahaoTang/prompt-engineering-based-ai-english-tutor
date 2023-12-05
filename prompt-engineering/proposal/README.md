@@ -1,0 +1,1 @@
+The old name for the AI tutor was Ioulia. Now the new name is Michael.
