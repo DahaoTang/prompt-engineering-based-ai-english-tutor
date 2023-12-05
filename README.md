@@ -14,5 +14,4 @@ https://learn.deeplearning.ai/chatgpt-prompt-eng/lesson/1/introduction
 
 ## Outcome
 
-1. An AI tutor that can summarise students' daily completed tasks using prompt engineering in format of a jupyter notebook.
-2. Slides of a proposal template for IELTS Institutions.
+1. An AI tutor that can summarise students' daily completed tasks using prompt engineering in the format of jupyter notebook.
